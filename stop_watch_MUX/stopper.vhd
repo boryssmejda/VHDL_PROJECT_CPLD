@@ -16,9 +16,11 @@ use work.output_data_type.all;
 
 entity stop_watch is
  port( 
-	i_clk 		: in std_logic := '0';
-	o_number 	: out std_logic_vector(7 downto 0) := "00000011";
-	o_display	: out std_logic_vector(7 downto 0) := "11111110");
+	i_enableCount 	: in std_logic; --it will be fed with value on button INPUT1, those buttons UP/DOWN
+	i_resetCount	: in std_logic; -- fed with INPUT1
+	i_clk 			: in std_logic := '0';
+	o_number 		: out std_logic_vector(7 downto 0) := "00000011";
+	o_display		: out std_logic_vector(7 downto 0) := "11111110");
 end entity stop_watch;
 
 
@@ -134,7 +136,7 @@ begin
 	begin
 	 
 		if rising_edge(i_clk) then
-
+			
 			--Managing current display
 			if s_currentDisplay = c_NrDisplays - 1 then
 				s_currentDisplay <= 0;
@@ -145,26 +147,32 @@ begin
 			turnOnDisplay(s_currentDisplay, s_selDisp);
 			--=============================================================
 			
-			--divide clock frequency
-			if counter_v = c_oneHundredthOfSecond - 1 then
-				counter_v := 0;
-				enable_v  := true;
-			else
-				counter_v := counter_v + 1;
-				enable_v  := false;
+			
+			
+			if i_enableCount = '1' then
+				--divide clock frequency
+				if counter_v = c_oneHundredthOfSecond - 1 then
+					counter_v := 0;
+					enable_v  := true;
+				else
+					counter_v := counter_v + 1;
+					enable_v  := false;
+				end if;
+				
+				
+				--update numbers
+				incrementWrap(s_currentDigit(0), c_MaxNumber, enable_v, wrapped_v);
+				incrementWrap(s_currentDigit(1), c_MaxNumber, wrapped_v, wrapped_v);
+				incrementWrap(s_currentDigit(2), c_MaxNumber, wrapped_v, wrapped_v);
+				incrementWrap(s_currentDigit(3), c_MaxNumber, wrapped_v, wrapped_v);
+				
+				resetStopWatchIfWrapped(s_currentDigit, wrapped_v);
 			end if;
 			
+				-- Put number on the display
+				displayNumber(s_currentDigit(s_currentDisplay), s_numberToDisplay);
+				
 			
-			--update numbers
-			incrementWrap(s_currentDigit(0), c_MaxNumber, enable_v, wrapped_v);
-			incrementWrap(s_currentDigit(1), c_MaxNumber, wrapped_v, wrapped_v);
-			incrementWrap(s_currentDigit(2), c_MaxNumber, wrapped_v, wrapped_v);
-			incrementWrap(s_currentDigit(3), c_MaxNumber, wrapped_v, wrapped_v);
-			
-			resetStopWatchIfWrapped(s_currentDigit, wrapped_v);
-			
-			-- Put number on the display
-			displayNumber(s_currentDigit(s_currentDisplay), s_numberToDisplay);
 		
 		end if;
 	
@@ -172,6 +180,9 @@ begin
 	
 	o_display 	<= s_selDisp;
 	o_number 	<= s_numberToDisplay;
-		
+	
+	-- Put number on the display
+	displayNumber(s_currentDigit(s_currentDisplay), s_numberToDisplay);
+	
 
 end rtl;
